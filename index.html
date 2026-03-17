@@ -77,7 +77,7 @@
 <script src="data.js"></script>
 
 <script>
-(() => {
+document.addEventListener("DOMContentLoaded", () => {
   let bloqueActual = 0;
   let preguntaActual = 0;
   let modo = "practica";
@@ -99,8 +99,21 @@
     contadorAciertos: document.getElementById("contadorAciertos"),
     progreso: document.getElementById("progreso"),
     quizContainer: document.getElementById("quiz-container"),
-    resultado: document.getElementById("resultado")
+    resultado: document.getElementById("resultado"),
+    info: document.getElementById("info")
   };
+
+  function mostrarError(texto) {
+    els.quizContainer.innerHTML = `
+      <div class="resultado-final">
+        <h2>Error</h2>
+        <p>${texto}</p>
+      </div>
+    `;
+    els.btnComprobar.disabled = true;
+    els.btnSiguiente.disabled = true;
+    els.btnReiniciar.disabled = true;
+  }
 
   function hayDatosValidos() {
     return Array.isArray(window.datos) && window.datos.length > 0;
@@ -116,7 +129,8 @@
   }
 
   function obtenerBloqueActual() {
-    return window.datos?.[bloqueActual] || null;
+    if (!hayDatosValidos()) return null;
+    return window.datos[bloqueActual] || null;
   }
 
   function prepararPreguntasActivas() {
@@ -143,6 +157,7 @@
   function actualizarPanel() {
     const bloque = obtenerBloqueActual();
     const total = preguntasActivas.length;
+
     const numeroVisible = total === 0
       ? 0
       : Math.min(preguntaActual + 1, total);
@@ -168,6 +183,20 @@
 
   function mostrarMensajeResultado(texto = "") {
     els.resultado.textContent = texto;
+  }
+
+  function limpiarSeleccionVisual() {
+    document.querySelectorAll(".opcion").forEach(b => {
+      b.classList.remove("seleccionada");
+    });
+  }
+
+  function seleccionarOpcion(i, btn) {
+    if (respondida) return;
+    limpiarSeleccionVisual();
+    btn.classList.add("seleccionada");
+    seleccion = i;
+    mostrarMensajeResultado("");
   }
 
   function renderPregunta() {
@@ -207,12 +236,13 @@
       btn.type = "button";
       btn.className = "opcion";
       btn.textContent = opcionTexto;
+      btn.setAttribute("data-index", i);
+      btn.setAttribute("aria-pressed", "false");
 
       btn.addEventListener("click", () => {
-        if (respondida) return;
-        document.querySelectorAll(".opcion").forEach(b => b.classList.remove("seleccionada"));
-        btn.classList.add("seleccionada");
-        seleccion = i;
+        document.querySelectorAll(".opcion").forEach(b => b.setAttribute("aria-pressed", "false"));
+        btn.setAttribute("aria-pressed", "true");
+        seleccionarOpcion(i, btn);
       });
 
       opcionesDiv.appendChild(btn);
@@ -253,9 +283,7 @@
     if (seleccion === Number(pregunta.correcta)) {
       aciertos++;
       mostrarMensajeResultado(
-        modo === "practica"
-          ? "✔ Correcto."
-          : "✔ Respuesta registrada."
+        modo === "practica" ? "✔ Correcto." : "✔ Respuesta registrada."
       );
     } else {
       mostrarMensajeResultado(
@@ -348,19 +376,26 @@
     els.btnComprobar.addEventListener("click", comprobarRespuesta);
     els.btnSiguiente.addEventListener("click", siguientePregunta);
     els.btnReiniciar.addEventListener("click", reiniciarBloque);
+
+    document.addEventListener("keydown", (e) => {
+      const opciones = [...document.querySelectorAll(".opcion:not(:disabled)")];
+      if (!opciones.length) return;
+
+      if (e.key >= "1" && e.key <= "9") {
+        const idx = Number(e.key) - 1;
+        if (opciones[idx]) opciones[idx].click();
+      }
+
+      if (e.key === "Enter") {
+        if (!respondida) comprobarRespuesta();
+        else siguientePregunta();
+      }
+    });
   }
 
   function init() {
     if (!hayDatosValidos()) {
-      els.quizContainer.innerHTML = `
-        <div class="resultado-final">
-          <h2>Error de carga</h2>
-          <p>No se ha encontrado un array válido llamado <strong>datos</strong> en <strong>data.js</strong>.</p>
-        </div>
-      `;
-      els.btnComprobar.disabled = true;
-      els.btnSiguiente.disabled = true;
-      els.btnReiniciar.disabled = true;
+      mostrarError('No se ha encontrado un array válido llamado <strong>datos</strong> en <strong>data.js</strong>.');
       return;
     }
 
@@ -371,7 +406,7 @@
   }
 
   init();
-})();
+});
 </script>
 
 </body>
