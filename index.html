@@ -56,12 +56,21 @@
     </div>
   </section>
 
+  <section class="subnav" id="subnav">
+    <button type="button" id="btnVistaQuiz" class="activo">Quiz</button>
+    <button type="button" id="btnVistaEsquema">Esquema</button>
+    <button type="button" id="btnVistaCortas">Preguntas cortas</button>
+  </section>
+
+  <section id="panelEsquema" class="panel-extra oculto"></section>
+  <section id="panelCortas" class="panel-extra oculto"></section>
+
   <div id="quiz-container">
     <h2 id="pregunta"></h2>
     <div id="opciones"></div>
   </div>
 
-  <div class="controles">
+  <div class="controles" id="controlesQuiz">
     <button type="button" id="btnComprobar">Comprobar</button>
     <button type="button" id="btnSiguiente">Siguiente</button>
     <button type="button" id="btnReiniciar">Reiniciar bloque</button>
@@ -85,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let aciertos = 0;
   let respondida = false;
   let preguntasActivas = [];
+  let vistaActual = "quiz";
 
   const els = {
     menuBloques: document.getElementById("menuBloques"),
@@ -93,6 +103,9 @@ document.addEventListener("DOMContentLoaded", () => {
     btnComprobar: document.getElementById("btnComprobar"),
     btnSiguiente: document.getElementById("btnSiguiente"),
     btnReiniciar: document.getElementById("btnReiniciar"),
+    btnVistaQuiz: document.getElementById("btnVistaQuiz"),
+    btnVistaEsquema: document.getElementById("btnVistaEsquema"),
+    btnVistaCortas: document.getElementById("btnVistaCortas"),
     nombreBloque: document.getElementById("nombreBloque"),
     contadorPregunta: document.getElementById("contadorPregunta"),
     modoActualTexto: document.getElementById("modoActualTexto"),
@@ -100,7 +113,10 @@ document.addEventListener("DOMContentLoaded", () => {
     progreso: document.getElementById("progreso"),
     quizContainer: document.getElementById("quiz-container"),
     resultado: document.getElementById("resultado"),
-    info: document.getElementById("info")
+    info: document.getElementById("info"),
+    panelEsquema: document.getElementById("panelEsquema"),
+    panelCortas: document.getElementById("panelCortas"),
+    controlesQuiz: document.getElementById("controlesQuiz")
   };
 
   function mostrarError(texto) {
@@ -154,6 +170,12 @@ document.addEventListener("DOMContentLoaded", () => {
     els.modoActualTexto.textContent = modo === "practica" ? "Práctica" : "Examen";
   }
 
+  function actualizarBotonesVista() {
+    els.btnVistaQuiz.classList.toggle("activo", vistaActual === "quiz");
+    els.btnVistaEsquema.classList.toggle("activo", vistaActual === "esquema");
+    els.btnVistaCortas.classList.toggle("activo", vistaActual === "cortas");
+  }
+
   function actualizarPanel() {
     const bloque = obtenerBloqueActual();
     const total = preguntasActivas.length;
@@ -174,15 +196,15 @@ document.addEventListener("DOMContentLoaded", () => {
     els.progreso.style.width = `${Math.max(0, Math.min(100, progreso))}%`;
   }
 
+  function mostrarMensajeResultado(texto = "") {
+    els.resultado.textContent = texto;
+  }
+
   function restaurarEstructuraQuiz() {
     els.quizContainer.innerHTML = `
       <h2 id="pregunta"></h2>
       <div id="opciones"></div>
     `;
-  }
-
-  function mostrarMensajeResultado(texto = "") {
-    els.resultado.textContent = texto;
   }
 
   function limpiarSeleccionVisual() {
@@ -197,6 +219,130 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.classList.add("seleccionada");
     seleccion = i;
     mostrarMensajeResultado("");
+  }
+
+  function renderInfoBloque() {
+    const bloque = obtenerBloqueActual();
+    if (!bloque) {
+      els.info.innerHTML = "";
+      return;
+    }
+
+    const descripcion = {
+      bloque1: "Poesía oral, épica y romances: amor, héroes, honor y tradición popular.",
+      bloque2: "Poesía culta, moral y reflexión sobre la vida, la muerte y el paso del tiempo.",
+      bloque3: "Prosa didáctica y teatro medieval: consejos para vivir y análisis del deseo y la conducta.",
+      bloque4: "Tópicos literarios, métrica y figuras para analizar textos con seguridad en examen."
+    };
+
+    els.info.innerHTML = `
+      <div class="bloque-resumen">
+        <h3>${bloque.nombre || bloque.titulo}</h3>
+        <p>${descripcion[bloque.id] || "Bloque de literatura medieval."}</p>
+      </div>
+    `;
+  }
+
+  function renderEsquema() {
+    const bloque = obtenerBloqueActual();
+    if (!bloque) {
+      els.panelEsquema.innerHTML = "";
+      return;
+    }
+
+    let figurasHTML = "";
+
+    if (bloque.figuras_esquema) {
+      const fe = bloque.figuras_esquema;
+
+      const renderGrupo = (titulo, arr) => {
+        if (!Array.isArray(arr) || !arr.length) return "";
+        return `
+          <div class="grupo-figuras">
+            <h4>${titulo}</h4>
+            <div class="tabla-figuras">
+              ${arr.map(item => `
+                <div class="figura-item">
+                  <strong>${item.figura}</strong>
+                  <p><em>Definición:</em> ${item.definicion}</p>
+                  <p><em>Ejemplo:</em> ${item.ejemplo}</p>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      };
+
+      figurasHTML = `
+        <div class="figuras-wrap">
+          ${renderGrupo("Figuras de sonido", fe.sonido)}
+          ${renderGrupo("Figuras de estructura", fe.estructura)}
+          ${renderGrupo("Figuras de significado", fe.significado)}
+          ${
+            Array.isArray(fe.memoria) && fe.memoria.length
+              ? `<div class="grupo-figuras"><h4>Esquema rápido para memorizar</h4><ul>${fe.memoria.map(x => `<li>${x}</li>`).join("")}</ul></div>`
+              : ""
+          }
+          ${
+            Array.isArray(fe.trucos) && fe.trucos.length
+              ? `<div class="grupo-figuras"><h4>Trucos rápidos</h4><ul>${fe.trucos.map(x => `<li>${x}</li>`).join("")}</ul></div>`
+              : ""
+          }
+        </div>
+      `;
+    }
+
+    els.panelEsquema.innerHTML = `
+      <div class="resultado-final">
+        <h2>Esquema del bloque</h2>
+        <ul class="lista-esquema">
+          ${(bloque.esquema || []).map(item => `<li>${item}</li>`).join("")}
+        </ul>
+        ${figurasHTML}
+      </div>
+    `;
+  }
+
+  function renderCortas() {
+    const bloque = obtenerBloqueActual();
+    if (!bloque) {
+      els.panelCortas.innerHTML = "";
+      return;
+    }
+
+    const cortas = Array.isArray(bloque.cortas) ? bloque.cortas : [];
+
+    els.panelCortas.innerHTML = `
+      <div class="resultado-final">
+        <h2>Preguntas cortas con modelo</h2>
+        ${
+          cortas.length
+            ? cortas.map(item => `
+              <div class="corta-item">
+                <h4>${item.n}. ${item.pregunta}</h4>
+                <p><strong>Modelo:</strong> ${item.respuesta || ""}</p>
+              </div>
+            `).join("")
+            : "<p>No hay preguntas cortas disponibles en este bloque.</p>"
+        }
+      </div>
+    `;
+  }
+
+  function mostrarVista(vista) {
+    vistaActual = vista;
+    actualizarBotonesVista();
+
+    const mostrarQuiz = vista === "quiz";
+    els.quizContainer.classList.toggle("oculto", !mostrarQuiz);
+    els.controlesQuiz.classList.toggle("oculto", !mostrarQuiz);
+    els.resultado.classList.toggle("oculto", !mostrarQuiz);
+
+    els.panelEsquema.classList.toggle("oculto", vista !== "esquema");
+    els.panelCortas.classList.toggle("oculto", vista !== "cortas");
+
+    if (vista === "esquema") renderEsquema();
+    if (vista === "cortas") renderCortas();
   }
 
   function renderPregunta() {
@@ -271,12 +417,17 @@ document.addEventListener("DOMContentLoaded", () => {
     botones.forEach((btn, i) => {
       btn.disabled = true;
 
-      if (i === Number(pregunta.correcta)) {
-        btn.classList.add("correcta");
-      }
-
-      if (i === seleccion && i !== Number(pregunta.correcta)) {
-        btn.classList.add("incorrecta");
+      if (modo === "practica") {
+        if (i === Number(pregunta.correcta)) {
+          btn.classList.add("correcta");
+        }
+        if (i === seleccion && i !== Number(pregunta.correcta)) {
+          btn.classList.add("incorrecta");
+        }
+      } else {
+        if (i === seleccion) {
+          btn.classList.add("seleccionada");
+        }
       }
     });
 
@@ -350,7 +501,11 @@ document.addEventListener("DOMContentLoaded", () => {
     seleccion = null;
     respondida = false;
     prepararPreguntasActivas();
+    renderInfoBloque();
+    renderEsquema();
+    renderCortas();
     renderPregunta();
+    mostrarVista(vistaActual);
   }
 
   function cargarBloque(num) {
@@ -377,7 +532,13 @@ document.addEventListener("DOMContentLoaded", () => {
     els.btnSiguiente.addEventListener("click", siguientePregunta);
     els.btnReiniciar.addEventListener("click", reiniciarBloque);
 
+    els.btnVistaQuiz.addEventListener("click", () => mostrarVista("quiz"));
+    els.btnVistaEsquema.addEventListener("click", () => mostrarVista("esquema"));
+    els.btnVistaCortas.addEventListener("click", () => mostrarVista("cortas"));
+
     document.addEventListener("keydown", (e) => {
+      if (vistaActual !== "quiz") return;
+
       const opciones = [...document.querySelectorAll(".opcion:not(:disabled)")];
       if (!opciones.length) return;
 
@@ -402,6 +563,7 @@ document.addEventListener("DOMContentLoaded", () => {
     enlazarEventos();
     actualizarBotonesModo();
     actualizarBotonesBloque();
+    actualizarBotonesVista();
     reiniciarBloque();
   }
 
