@@ -1,14 +1,342 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LITERATURA MEDIEVAL — 3º ESO</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Literatura Medieval - Plataforma</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app"></div>
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+
+<header class="header">
+  <h1>📜 Literatura Medieval</h1>
+  <p>Entrenamiento interactivo · 1º ESO</p>
+</header>
+
+<nav class="menu" id="menuBloques">
+  <button type="button" data-bloque="0" onclick="cargarBloque(0)">🔵 Poesía Popular</button>
+  <button type="button" data-bloque="1" onclick="cargarBloque(1)">🔴 Poesía Culta</button>
+  <button type="button" data-bloque="2" onclick="cargarBloque(2)">🟡 Prosa y Teatro</button>
+  <button type="button" data-bloque="3" onclick="cargarBloque(3)">🟢 Laboratorio Técnico</button>
+</nav>
+
+<section class="modo">
+  <button type="button" id="btnPractica" onclick="activarModo('practica')">Modo Práctica</button>
+  <button type="button" id="btnExamen" onclick="activarModo('examen')">Modo Examen</button>
+</section>
+
+<main class="container">
+  <div id="info"></div>
+
+  <section class="panel-superior">
+    <div class="estado estado-bloque">
+      <span class="estado-label">Bloque</span>
+      <strong id="nombreBloque">—</strong>
+    </div>
+
+    <div class="estado estado-pregunta">
+      <span class="estado-label">Pregunta</span>
+      <strong id="contadorPregunta">0 / 0</strong>
+    </div>
+
+    <div class="estado estado-modo">
+      <span class="estado-label">Modo</span>
+      <strong id="modoActualTexto">Práctica</strong>
+    </div>
+
+    <div class="estado estado-aciertos">
+      <span class="estado-label">Aciertos</span>
+      <strong id="contadorAciertos">0</strong>
+    </div>
+  </section>
+
+  <section class="progreso-wrap" aria-label="Progreso del bloque">
+    <div class="progreso-barra">
+      <div id="progreso" class="progreso-fill"></div>
+    </div>
+  </section>
+
+  <div id="quiz-container">
+    <h2 id="pregunta"></h2>
+    <div id="opciones"></div>
+  </div>
+
+  <div class="controles">
+    <button type="button" id="btnComprobar" onclick="comprobar()">Comprobar</button>
+    <button type="button" id="btnSiguiente" onclick="siguiente()">Siguiente</button>
+    <button type="button" id="btnReiniciar" onclick="reiniciarBloque()">Reiniciar bloque</button>
+  </div>
+
+  <div id="resultado" aria-live="polite"></div>
+</main>
+
+<footer>
+  <p>Proyecto educativo · Ana Ubertas</p>
+</footer>
+
+<script src="data.js"></script>
+
+<script>
+let bloqueActual = 0;
+let preguntaActual = 0;
+let modo = "practica";
+let seleccion = null;
+let aciertos = 0;
+let respondida = false;
+let preguntasExamen = [];
+
+function obtenerPreguntasDelBloque() {
+  const bloque = datos[bloqueActual];
+  if (!bloque || !Array.isArray(bloque.preguntas)) return [];
+  return modo === "examen" ? preguntasExamen : bloque.preguntas;
+}
+
+function mezclarArray(array) {
+  const copia = [...array];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+function activarModo(nuevoModo) {
+  if (modo === nuevoModo) return;
+
+  modo = nuevoModo;
+  actualizarBotonesModo();
+  reiniciarBloque();
+}
+
+function actualizarBotonesModo() {
+  const btnPractica = document.getElementById("btnPractica");
+  const btnExamen = document.getElementById("btnExamen");
+  const modoTexto = document.getElementById("modoActualTexto");
+
+  btnPractica.classList.toggle("activo", modo === "practica");
+  btnExamen.classList.toggle("activo", modo === "examen");
+
+  modoTexto.textContent = modo === "practica" ? "Práctica" : "Examen";
+}
+
+function actualizarBotonesBloque() {
+  const botones = document.querySelectorAll("#menuBloques button");
+  botones.forEach((btn, i) => {
+    btn.classList.toggle("activo", i === bloqueActual);
+  });
+}
+
+function prepararPreguntasExamen() {
+  const preguntasOriginales = datos[bloqueActual].preguntas || [];
+  preguntasExamen = mezclarArray(preguntasOriginales);
+}
+
+function cargarBloque(num) {
+  bloqueActual = num;
+  actualizarBotonesBloque();
+  reiniciarBloque();
+}
+
+function reiniciarBloque() {
+  preguntaActual = 0;
+  aciertos = 0;
+  seleccion = null;
+  respondida = false;
+
+  if (modo === "examen") {
+    prepararPreguntasExamen();
+  }
+
+  restaurarEstructuraQuiz();
+  actualizarPanel();
+  mostrarPregunta();
+}
+
+function restaurarEstructuraQuiz() {
+  const quizContainer = document.getElementById("quiz-container");
+  quizContainer.innerHTML = `
+    <h2 id="pregunta"></h2>
+    <div id="opciones"></div>
+  `;
+
+  document.getElementById("resultado").textContent = "";
+  document.getElementById("btnComprobar").disabled = false;
+  document.getElementById("btnSiguiente").disabled = false;
+}
+
+function actualizarPanel() {
+  const bloque = datos[bloqueActual];
+  const preguntas = obtenerPreguntasDelBloque();
+  const total = preguntas.length;
+  const numeroVisible = total === 0 ? 0 : Math.min(preguntaActual + 1, total);
+  const progreso = total === 0 ? 0 : (preguntaActual / total) * 100;
+
+  document.getElementById("nombreBloque").textContent = bloque.nombre || `Bloque ${bloqueActual + 1}`;
+  document.getElementById("contadorPregunta").textContent = `${numeroVisible} / ${total}`;
+  document.getElementById("contadorAciertos").textContent = aciertos;
+  document.getElementById("progreso").style.width = `${progreso}%`;
+}
+
+function mostrarPregunta() {
+  const preguntas = obtenerPreguntasDelBloque();
+
+  if (!preguntas.length) {
+    document.getElementById("quiz-container").innerHTML = `
+      <h2>No hay preguntas disponibles</h2>
+      <p>Revisa tu archivo <strong>data.js</strong>.</p>
+    `;
+    return;
+  }
+
+  const pregunta = preguntas[preguntaActual];
+  const preguntaEl = document.getElementById("pregunta");
+  const opcionesDiv = document.getElementById("opciones");
+  const resultado = document.getElementById("resultado");
+
+  respondida = false;
+  seleccion = null;
+
+  preguntaEl.textContent = `${preguntaActual + 1}. ${pregunta.enunciado}`;
+  opcionesDiv.innerHTML = "";
+  resultado.textContent = "";
+
+  pregunta.opciones.forEach((op, i) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = op;
+    btn.className = "opcion";
+    btn.onclick = () => seleccionar(i, btn);
+    opcionesDiv.appendChild(btn);
+  });
+
+  document.getElementById("btnComprobar").disabled = false;
+  document.getElementById("btnSiguiente").disabled = false;
+
+  actualizarPanel();
+}
+
+function seleccionar(i, btn) {
+  if (respondida) return;
+
+  const botones = document.querySelectorAll(".opcion");
+  botones.forEach(b => b.classList.remove("seleccionada"));
+
+  btn.classList.add("seleccionada");
+  seleccion = i;
+}
+
+function comprobar() {
+  if (respondida) return;
+
+  if (seleccion === null) {
+    document.getElementById("resultado").textContent = "Selecciona una opción antes de comprobar.";
+    return;
+  }
+
+  const preguntas = obtenerPreguntasDelBloque();
+  const pregunta = preguntas[preguntaActual];
+  const botones = document.querySelectorAll(".opcion");
+  const resultado = document.getElementById("resultado");
+
+  respondida = true;
+
+  botones.forEach((btn, i) => {
+    btn.disabled = true;
+
+    if (i === pregunta.correcta) {
+      btn.classList.add("correcta");
+    }
+
+    if (i === seleccion && i !== pregunta.correcta) {
+      btn.classList.add("incorrecta");
+    }
+  });
+
+  if (seleccion === pregunta.correcta) {
+    aciertos++;
+    resultado.textContent = modo === "practica"
+      ? "✔ Correcto."
+      : "✔ Respuesta registrada.";
+  } else {
+    resultado.textContent = modo === "practica"
+      ? `✘ Incorrecto. ${pregunta.feedback || ""}`
+      : "✘ Respuesta registrada.";
+  }
+
+  actualizarPanel();
+
+  if (modo === "examen") {
+    if (seleccion !== null && pregunta.correcta !== undefined) {
+      // En examen no damos feedback real, solo registramos
+    }
+  }
+}
+
+function siguiente() {
+  const preguntas = obtenerPreguntasDelBloque();
+
+  if (!preguntas.length) return;
+
+  if (!respondida) {
+    document.getElementById("resultado").textContent = "Primero debes comprobar la respuesta.";
+    return;
+  }
+
+  preguntaActual++;
+
+  if (preguntaActual >= preguntas.length) {
+    mostrarResultadoFinal();
+    return;
+  }
+
+  mostrarPregunta();
+}
+
+function mostrarResultadoFinal() {
+  const preguntas = obtenerPreguntasDelBloque();
+  const total = preguntas.length;
+  const porcentaje = total === 0 ? 0 : Math.round((aciertos / total) * 100);
+  let mensaje = "";
+
+  if (porcentaje >= 90) mensaje = "Dominio excelente del bloque.";
+  else if (porcentaje >= 70) mensaje = "Muy buen trabajo.";
+  else if (porcentaje >= 50) mensaje = "Base conseguida, pero aún puedes afinar.";
+  else mensaje = "Necesitas otra vuelta de estudio, y eso tiene arreglo.";
+
+  document.getElementById("quiz-container").innerHTML = `
+    <div class="resultado-final">
+      <h2>Resultado final</h2>
+      <p><strong>Bloque:</strong> ${datos[bloqueActual].nombre || `Bloque ${bloqueActual + 1}`}</p>
+      <p><strong>Modo:</strong> ${modo === "practica" ? "Práctica" : "Examen"}</p>
+      <p><strong>Aciertos:</strong> ${aciertos} / ${total}</p>
+      <p><strong>Porcentaje:</strong> ${porcentaje}%</p>
+      <p><strong>Valoración:</strong> ${mensaje}</p>
+    </div>
+  `;
+
+  document.getElementById("resultado").textContent = "Bloque completado.";
+  document.getElementById("btnComprobar").disabled = true;
+  document.getElementById("btnSiguiente").disabled = true;
+  document.getElementById("progreso").style.width = "100%";
+  document.getElementById("contadorPregunta").textContent = `${total} / ${total}`;
+}
+
+function init() {
+  if (!Array.isArray(datos) || !datos.length) {
+    document.getElementById("quiz-container").innerHTML = `
+      <h2>Error de carga</h2>
+      <p>No se ha encontrado un array válido llamado <strong>datos</strong> en <strong>data.js</strong>.</p>
+    `;
+    return;
+  }
+
+  actualizarBotonesModo();
+  actualizarBotonesBloque();
+  reiniciarBloque();
+}
+
+init();
+</script>
+
 </body>
 </html>
