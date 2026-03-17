@@ -1307,5 +1307,64 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     LITERATURA_MEDIEVAL_DATA,
     datos
+/* =========================================================
+   ADAPTACIÓN AUTOMÁTICA PARA LA WEB
+   NO PIERDE INFORMACIÓN: SOLO CREA FORMATOS COMPATIBLES
+========================================================= */
+
+const datos = LITERATURA_MEDIEVAL_DATA.map((bloque) => ({
+  id: bloque.id,
+  nombre: bloque.titulo,
+  titulo: bloque.titulo,
+  esquema: Array.isArray(bloque.esquema) ? bloque.esquema : [],
+  cortas: Array.isArray(bloque.cortas) ? bloque.cortas : [],
+  figuras_esquema: bloque.figuras_esquema || null,
+
+  preguntas: Array.isArray(bloque.test)
+    ? bloque.test.map((item) => ({
+        id: `${bloque.id}_p${item.n}`,
+        n: item.n,
+        enunciado: item.pregunta,
+        pregunta: item.pregunta,
+        opciones: Array.isArray(item.opciones) ? item.opciones : [],
+        correcta: Number(item.correcta),
+        feedback: item.feedback || "",
+        bloqueId: bloque.id,
+        bloqueTitulo: bloque.titulo
+      }))
+    : []
+}));
+
+/* Banco general de preguntas para quiz global */
+const quizGeneral = datos.flatMap((bloque) => bloque.preguntas);
+
+/* Acceso rápido por id de bloque */
+const datosPorId = Object.fromEntries(
+  datos.map((bloque) => [bloque.id, bloque])
+);
+
+/* =========================================================
+   EXPORTACIÓN GLOBAL PARA NAVEGADOR
+========================================================= */
+
+if (typeof window !== "undefined") {
+  window.LITERATURA_MEDIEVAL_DATA = LITERATURA_MEDIEVAL_DATA;
+  window.datos = datos;
+  window.quizGeneral = quizGeneral;
+  window.datosPorId = datosPorId;
+}
+
+/* =========================================================
+   EXPORTACIÓN PARA NODE / TESTS
+========================================================= */
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    LITERATURA_MEDIEVAL_DATA,
+    datos,
+    quizGeneral,
+    datosPorId
+  };
+}
   };
 }
