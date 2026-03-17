@@ -28,6 +28,103 @@
 <main class="container">
   <div id="info"></div>
 
+  <section id="celestinaEspecial" class="celestina-box oculto">
+    <h2>LA CELESTINA ESTUDIAR¡¡¡ MUY IMPORTANTE¡¡¡</h2>
+    <p class="aviso">Repasa especialmente personajes, relaciones y el tipo de relación entre ellos.</p>
+
+    <div class="celestina-grid">
+      <div class="celestina-card">
+        <h3>Datos clave</h3>
+        <ul>
+          <li><strong>Obra:</strong> La Celestina (1499)</li>
+          <li><strong>Autor:</strong> Fernando de Rojas</li>
+          <li><strong>Título inicial:</strong> Tragicomedia</li>
+          <li><strong>Género:</strong> tragicomedia, diálogo, comedia humanística</li>
+          <li><strong>Rasgo importante:</strong> obra extensa, pensada para ser leída por un auditorio pequeño</li>
+          <li><strong>Detalle preguntable:</strong> el nombre del autor aparece en versos acrósticos</li>
+        </ul>
+      </div>
+
+      <div class="celestina-card">
+        <h3>Mundos de la obra</h3>
+        <div class="celestina-mini">
+          <div>
+            <p><strong>Mundo de señores</strong></p>
+            <ul>
+              <li>Calisto (galán)</li>
+              <li>Melibea (dama)</li>
+              <li>Pleberio</li>
+              <li>Alisa</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>Mundo de criados y prostitutas</strong></p>
+            <ul>
+              <li>Sempronio (criado deshonesto)</li>
+              <li>Pármeno (criado más fiel al principio)</li>
+              <li>Elicia</li>
+              <li>Areúsa</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="celestina-card" style="grid-column: 1 / -1;">
+        <h3>Relaciones y tipo de relación</h3>
+
+        <div class="relacion-item">
+          <strong>Calisto ↔ Melibea</strong><br>
+          Tipo de relación: <strong>amor / deseo</strong>. Es la relación central de la obra.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Calisto → Celestina</strong><br>
+          Tipo de relación: <strong>interés / dependencia</strong>. Calisto la necesita para acercarse a Melibea.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Celestina → Melibea</strong><br>
+          Tipo de relación: <strong>manipulación / persuasión</strong>. Celestina interviene como mediadora.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Celestina ↔ Sempronio</strong><br>
+          Tipo de relación: <strong>complicidad / interés económico</strong>.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Celestina ↔ Pármeno</strong><br>
+          Tipo de relación: <strong>presión / manipulación</strong>. Intenta arrastrarlo a su mundo.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Sempronio ↔ Pármeno</strong><br>
+          Tipo de relación: <strong>alianza interesada</strong>. Actúan juntos por codicia.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Sempronio ↔ Elicia</strong><br>
+          Tipo de relación: <strong>relación amorosa interesada</strong>.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Pármeno ↔ Areúsa</strong><br>
+          Tipo de relación: <strong>deseo / seducción</strong>.
+        </div>
+
+        <div class="relacion-item">
+          <strong>Melibea ↔ Pleberio y Alisa</strong><br>
+          Tipo de relación: <strong>relación familiar</strong>. Son sus padres.
+        </div>
+
+        <div class="relacion-item">
+          <strong>La obra en conjunto</strong><br>
+          Relación entre mundos: <strong>choque entre señores y criados</strong>, con deseo, manipulación, codicia y conflicto moral.
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="panel-superior">
     <div class="estado">
       <span class="estado-label">Bloque</span>
@@ -120,7 +217,8 @@ document.addEventListener("DOMContentLoaded", () => {
     panelEsquema: document.getElementById("panelEsquema"),
     panelCortas: document.getElementById("panelCortas"),
     quizContainer: document.getElementById("quiz-container"),
-    resultado: document.getElementById("resultado")
+    resultado: document.getElementById("resultado"),
+    celestinaEspecial: document.getElementById("celestinaEspecial")
   };
 
   function hayDatosValidos() {
@@ -215,6 +313,12 @@ document.addEventListener("DOMContentLoaded", () => {
         <p>Trabaja el bloque con esquema, test y preguntas cortas guiadas.</p>
       </div>
     `;
+  }
+
+  function renderCelestinaEspecial() {
+    const bloque = obtenerBloqueActual();
+    const mostrar = bloque && bloque.id === "bloque3";
+    els.celestinaEspecial.classList.toggle("oculto", !mostrar);
   }
 
   function renderEsquema() {
@@ -429,9 +533,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "opcion";
-      btn.textContent = opcionTexto;
 
       if (seleccion === i) btn.classList.add("seleccionada");
+
+      btn.textContent = opcionTexto;
 
       btn.addEventListener("click", () => {
         if (respondida) return;
@@ -548,6 +653,7 @@ document.addEventListener("DOMContentLoaded", () => {
     aciertos = 0;
     prepararPreguntasActivas();
     renderInfoBloque();
+    renderCelestinaEspecial();
     renderEsquema();
     renderCortas();
     renderPregunta();
