@@ -29,22 +29,22 @@
   <div id="info"></div>
 
   <section class="panel-superior">
-    <div class="estado estado-bloque">
+    <div class="estado">
       <span class="estado-label">Bloque</span>
       <strong id="nombreBloque">—</strong>
     </div>
 
-    <div class="estado estado-pregunta">
+    <div class="estado">
       <span class="estado-label">Pregunta</span>
       <strong id="contadorPregunta">0 / 0</strong>
     </div>
 
-    <div class="estado estado-modo">
+    <div class="estado">
       <span class="estado-label">Modo</span>
       <strong id="modoActualTexto">Práctica</strong>
     </div>
 
-    <div class="estado estado-aciertos">
+    <div class="estado">
       <span class="estado-label">Aciertos</span>
       <strong id="contadorAciertos">0</strong>
     </div>
@@ -56,7 +56,7 @@
     </div>
   </section>
 
-  <section class="subnav" id="subnav">
+  <section class="subnav">
     <button type="button" id="btnVistaQuiz" class="activo">Quiz</button>
     <button type="button" id="btnVistaEsquema">Esquema</button>
     <button type="button" id="btnVistaCortas">Preguntas cortas</button>
@@ -65,18 +65,20 @@
   <section id="panelEsquema" class="panel-extra oculto"></section>
   <section id="panelCortas" class="panel-extra oculto"></section>
 
-  <div id="quiz-container">
-    <h2 id="pregunta"></h2>
-    <div id="opciones"></div>
-  </div>
+  <section id="panelQuiz">
+    <div id="quiz-container">
+      <h2 id="pregunta"></h2>
+      <div id="opciones"></div>
+    </div>
 
-  <div class="controles" id="controlesQuiz">
-    <button type="button" id="btnComprobar">Comprobar</button>
-    <button type="button" id="btnSiguiente">Siguiente</button>
-    <button type="button" id="btnReiniciar">Reiniciar bloque</button>
-  </div>
+    <div class="controles">
+      <button type="button" id="btnComprobar">Comprobar</button>
+      <button type="button" id="btnSiguiente">Siguiente</button>
+      <button type="button" id="btnReiniciar">Reiniciar bloque</button>
+    </div>
 
-  <div id="resultado" aria-live="polite"></div>
+    <div id="resultado" aria-live="polite"></div>
+  </section>
 </main>
 
 <footer>
@@ -90,49 +92,48 @@ document.addEventListener("DOMContentLoaded", () => {
   let bloqueActual = 0;
   let preguntaActual = 0;
   let modo = "practica";
-  let seleccion = null;
-  let aciertos = 0;
-  let respondida = false;
-  let preguntasActivas = [];
   let vistaActual = "quiz";
+
+  let preguntasActivas = [];
+  let seleccion = null;
+  let respondida = false;
+  let aciertos = 0;
+  let respuestasExamen = [];
 
   const els = {
     menuBloques: document.getElementById("menuBloques"),
     btnPractica: document.getElementById("btnPractica"),
     btnExamen: document.getElementById("btnExamen"),
-    btnComprobar: document.getElementById("btnComprobar"),
-    btnSiguiente: document.getElementById("btnSiguiente"),
-    btnReiniciar: document.getElementById("btnReiniciar"),
     btnVistaQuiz: document.getElementById("btnVistaQuiz"),
     btnVistaEsquema: document.getElementById("btnVistaEsquema"),
     btnVistaCortas: document.getElementById("btnVistaCortas"),
+    btnComprobar: document.getElementById("btnComprobar"),
+    btnSiguiente: document.getElementById("btnSiguiente"),
+    btnReiniciar: document.getElementById("btnReiniciar"),
     nombreBloque: document.getElementById("nombreBloque"),
     contadorPregunta: document.getElementById("contadorPregunta"),
     modoActualTexto: document.getElementById("modoActualTexto"),
     contadorAciertos: document.getElementById("contadorAciertos"),
     progreso: document.getElementById("progreso"),
-    quizContainer: document.getElementById("quiz-container"),
-    resultado: document.getElementById("resultado"),
     info: document.getElementById("info"),
+    panelQuiz: document.getElementById("panelQuiz"),
     panelEsquema: document.getElementById("panelEsquema"),
     panelCortas: document.getElementById("panelCortas"),
-    controlesQuiz: document.getElementById("controlesQuiz")
+    quizContainer: document.getElementById("quiz-container"),
+    resultado: document.getElementById("resultado")
   };
 
+  function hayDatosValidos() {
+    return Array.isArray(window.datos) && window.datos.length > 0;
+  }
+
   function mostrarError(texto) {
-    els.quizContainer.innerHTML = `
+    els.panelQuiz.innerHTML = `
       <div class="resultado-final">
         <h2>Error</h2>
         <p>${texto}</p>
       </div>
     `;
-    els.btnComprobar.disabled = true;
-    els.btnSiguiente.disabled = true;
-    els.btnReiniciar.disabled = true;
-  }
-
-  function hayDatosValidos() {
-    return Array.isArray(window.datos) && window.datos.length > 0;
   }
 
   function mezclarArray(array) {
@@ -145,21 +146,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function obtenerBloqueActual() {
-    if (!hayDatosValidos()) return null;
-    return window.datos[bloqueActual] || null;
+    return hayDatosValidos() ? window.datos[bloqueActual] : null;
   }
 
   function prepararPreguntasActivas() {
     const bloque = obtenerBloqueActual();
-    const preguntasOriginales = Array.isArray(bloque?.preguntas) ? bloque.preguntas : [];
-    preguntasActivas = modo === "examen"
-      ? mezclarArray(preguntasOriginales)
-      : [...preguntasOriginales];
+    const base = Array.isArray(bloque?.preguntas) ? bloque.preguntas : [];
+    preguntasActivas = modo === "examen" ? mezclarArray(base) : [...base];
+    respuestasExamen = new Array(preguntasActivas.length).fill(null);
   }
 
   function actualizarBotonesBloque() {
-    const botones = els.menuBloques.querySelectorAll("button");
-    botones.forEach((btn, i) => {
+    els.menuBloques.querySelectorAll("button").forEach((btn, i) => {
       btn.classList.toggle("activo", i === bloqueActual);
     });
   }
@@ -168,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     els.btnPractica.classList.toggle("activo", modo === "practica");
     els.btnExamen.classList.toggle("activo", modo === "examen");
     els.modoActualTexto.textContent = modo === "practica" ? "Práctica" : "Examen";
+    els.contadorAciertos.textContent = modo === "practica" ? aciertos : "—";
   }
 
   function actualizarBotonesVista() {
@@ -180,45 +179,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const bloque = obtenerBloqueActual();
     const total = preguntasActivas.length;
 
-    const numeroVisible = total === 0
-      ? 0
-      : Math.min(preguntaActual + 1, total);
+    let visible = total === 0 ? 0 : Math.min(preguntaActual + 1, total);
+    if (preguntaActual >= total && total > 0) visible = total;
 
-    const progreso = total === 0
-      ? 0
-      : respondida && preguntaActual < total
-        ? ((preguntaActual + 1) / total) * 100
-        : (preguntaActual / total) * 100;
+    let progreso = 0;
+    if (total > 0) {
+      if (modo === "examen") {
+        const contestadas = respuestasExamen.filter(x => x !== null).length;
+        progreso = (contestadas / total) * 100;
+      } else {
+        progreso = respondida ? ((preguntaActual + 1) / total) * 100 : (preguntaActual / total) * 100;
+      }
+    }
 
     els.nombreBloque.textContent = bloque?.nombre || bloque?.titulo || `Bloque ${bloqueActual + 1}`;
-    els.contadorPregunta.textContent = `${numeroVisible} / ${total}`;
-    els.contadorAciertos.textContent = aciertos;
+    els.contadorPregunta.textContent = `${visible} / ${total}`;
+    els.contadorAciertos.textContent = modo === "practica" ? aciertos : "—";
     els.progreso.style.width = `${Math.max(0, Math.min(100, progreso))}%`;
   }
 
   function mostrarMensajeResultado(texto = "") {
     els.resultado.textContent = texto;
-  }
-
-  function restaurarEstructuraQuiz() {
-    els.quizContainer.innerHTML = `
-      <h2 id="pregunta"></h2>
-      <div id="opciones"></div>
-    `;
-  }
-
-  function limpiarSeleccionVisual() {
-    document.querySelectorAll(".opcion").forEach(b => {
-      b.classList.remove("seleccionada");
-    });
-  }
-
-  function seleccionarOpcion(i, btn) {
-    if (respondida) return;
-    limpiarSeleccionVisual();
-    btn.classList.add("seleccionada");
-    seleccion = i;
-    mostrarMensajeResultado("");
   }
 
   function renderInfoBloque() {
@@ -228,17 +209,10 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const descripcion = {
-      bloque1: "Poesía oral, épica y romances: amor, héroes, honor y tradición popular.",
-      bloque2: "Poesía culta, moral y reflexión sobre la vida, la muerte y el paso del tiempo.",
-      bloque3: "Prosa didáctica y teatro medieval: consejos para vivir y análisis del deseo y la conducta.",
-      bloque4: "Tópicos literarios, métrica y figuras para analizar textos con seguridad en examen."
-    };
-
     els.info.innerHTML = `
       <div class="bloque-resumen">
         <h3>${bloque.nombre || bloque.titulo}</h3>
-        <p>${descripcion[bloque.id] || "Bloque de literatura medieval."}</p>
+        <p>Trabaja el bloque con esquema, test y preguntas cortas guiadas.</p>
       </div>
     `;
   }
@@ -255,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (bloque.figuras_esquema) {
       const fe = bloque.figuras_esquema;
 
-      const renderGrupo = (titulo, arr) => {
+      const pintarGrupo = (titulo, arr) => {
         if (!Array.isArray(arr) || !arr.length) return "";
         return `
           <div class="grupo-figuras">
@@ -274,21 +248,19 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       figurasHTML = `
-        <div class="figuras-wrap">
-          ${renderGrupo("Figuras de sonido", fe.sonido)}
-          ${renderGrupo("Figuras de estructura", fe.estructura)}
-          ${renderGrupo("Figuras de significado", fe.significado)}
-          ${
-            Array.isArray(fe.memoria) && fe.memoria.length
-              ? `<div class="grupo-figuras"><h4>Esquema rápido para memorizar</h4><ul>${fe.memoria.map(x => `<li>${x}</li>`).join("")}</ul></div>`
-              : ""
-          }
-          ${
-            Array.isArray(fe.trucos) && fe.trucos.length
-              ? `<div class="grupo-figuras"><h4>Trucos rápidos</h4><ul>${fe.trucos.map(x => `<li>${x}</li>`).join("")}</ul></div>`
-              : ""
-          }
-        </div>
+        ${pintarGrupo("Figuras de sonido", fe.sonido)}
+        ${pintarGrupo("Figuras de estructura", fe.estructura)}
+        ${pintarGrupo("Figuras de significado", fe.significado)}
+        ${
+          Array.isArray(fe.memoria) && fe.memoria.length
+            ? `<div class="grupo-figuras"><h4>Esquema rápido</h4><ul>${fe.memoria.map(x => `<li>${x}</li>`).join("")}</ul></div>`
+            : ""
+        }
+        ${
+          Array.isArray(fe.trucos) && fe.trucos.length
+            ? `<div class="grupo-figuras"><h4>Trucos</h4><ul>${fe.trucos.map(x => `<li>${x}</li>`).join("")}</ul></div>`
+            : ""
+        }
       `;
     }
 
@@ -303,6 +275,16 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
+  function plantillaRespuesta(textoPregunta = "") {
+    const t = textoPregunta.toLowerCase();
+
+    if (t.includes("qué es") || t.includes("que es")) return "Empieza con: “X es…”";
+    if (t.includes("qué significa") || t.includes("que significa")) return "Empieza con: “Significa que…”";
+    if (t.includes("quién") || t.includes("quien")) return "Empieza con: “Fue…” o “Es…”";
+    if (t.includes("cuál es") || t.includes("cual es")) return "Empieza con: “Es…”";
+    return "Escribe 1 línea clara y completa.";
+  }
+
   function renderCortas() {
     const bloque = obtenerBloqueActual();
     if (!bloque) {
@@ -314,35 +296,101 @@ document.addEventListener("DOMContentLoaded", () => {
 
     els.panelCortas.innerHTML = `
       <div class="resultado-final">
-        <h2>Preguntas cortas con modelo</h2>
+        <h2>Preguntas cortas con escritura guiada</h2>
         ${
           cortas.length
-            ? cortas.map(item => `
-              <div class="corta-item">
-                <h4>${item.n}. ${item.pregunta}</h4>
-                <p><strong>Modelo:</strong> ${item.respuesta || ""}</p>
+            ? cortas.map((item, i) => `
+              <div class="corta-card">
+                <div class="corta-head">
+                  <h4>${item.n}. ${item.pregunta}</h4>
+                </div>
+
+                <label class="corta-label" for="respuestaCorta_${i}">
+                  Escribe 1 línea
+                </label>
+
+                <textarea
+                  id="respuestaCorta_${i}"
+                  class="corta-textarea"
+                  rows="3"
+                  placeholder="${plantillaRespuesta(item.pregunta)}"
+                ></textarea>
+
+                <div class="corta-botones">
+                  <button type="button" class="btn-corta btn-corta-comprobar" data-i="${i}">
+                    Comprobar
+                  </button>
+                  <button type="button" class="btn-corta btn-corta-modelo" data-i="${i}">
+                    Ver modelo
+                  </button>
+                </div>
+
+                <p class="corta-pista">${plantillaRespuesta(item.pregunta)}</p>
+
+                <div class="corta-resultado" id="cortaResultado_${i}"></div>
+                <div class="corta-modelo oculto" id="cortaModelo_${i}">
+                  <p><strong>Modelo:</strong> ${item.respuesta || ""}</p>
+                </div>
               </div>
             `).join("")
             : "<p>No hay preguntas cortas disponibles en este bloque.</p>"
         }
       </div>
     `;
+
+    els.panelCortas.querySelectorAll(".btn-corta-comprobar").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = btn.dataset.i;
+        const textarea = document.getElementById(`respuestaCorta_${i}`);
+        const resultado = document.getElementById(`cortaResultado_${i}`);
+        const valor = textarea.value.trim();
+
+        if (!valor) {
+          resultado.innerHTML = `<p>Escribe una respuesta antes de comprobar.</p>`;
+          return;
+        }
+
+        resultado.innerHTML = `<p>✔ Respuesta escrita. Ahora compárala con el modelo.</p>`;
+      });
+    });
+
+    els.panelCortas.querySelectorAll(".btn-corta-modelo").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const i = btn.dataset.i;
+        document.getElementById(`cortaModelo_${i}`).classList.toggle("oculto");
+      });
+    });
   }
 
   function mostrarVista(vista) {
     vistaActual = vista;
     actualizarBotonesVista();
 
-    const mostrarQuiz = vista === "quiz";
-    els.quizContainer.classList.toggle("oculto", !mostrarQuiz);
-    els.controlesQuiz.classList.toggle("oculto", !mostrarQuiz);
-    els.resultado.classList.toggle("oculto", !mostrarQuiz);
-
+    els.panelQuiz.classList.toggle("oculto", vista !== "quiz");
     els.panelEsquema.classList.toggle("oculto", vista !== "esquema");
     els.panelCortas.classList.toggle("oculto", vista !== "cortas");
 
     if (vista === "esquema") renderEsquema();
     if (vista === "cortas") renderCortas();
+  }
+
+  function restaurarEstructuraQuiz() {
+    els.quizContainer.innerHTML = `
+      <h2 id="pregunta"></h2>
+      <div id="opciones"></div>
+    `;
+  }
+
+  function limpiarSeleccionVisual() {
+    document.querySelectorAll(".opcion").forEach(b => b.classList.remove("seleccionada"));
+  }
+
+  function seleccionarOpcion(i, btn) {
+    if (respondida) return;
+    limpiarSeleccionVisual();
+    btn.classList.add("seleccionada");
+    seleccion = i;
+    mostrarMensajeResultado("");
   }
 
   function renderPregunta() {
@@ -366,7 +414,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     respondida = false;
-    seleccion = null;
+    seleccion = modo === "examen" ? respuestasExamen[preguntaActual] : null;
 
     restaurarEstructuraQuiz();
 
@@ -382,12 +430,11 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.type = "button";
       btn.className = "opcion";
       btn.textContent = opcionTexto;
-      btn.setAttribute("data-index", i);
-      btn.setAttribute("aria-pressed", "false");
+
+      if (seleccion === i) btn.classList.add("seleccionada");
 
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".opcion").forEach(b => b.setAttribute("aria-pressed", "false"));
-        btn.setAttribute("aria-pressed", "true");
+        if (respondida) return;
         seleccionarOpcion(i, btn);
       });
 
@@ -409,39 +456,30 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const pregunta = preguntasActivas[preguntaActual];
-    if (!pregunta) return;
-
     const botones = document.querySelectorAll(".opcion");
+    if (!pregunta || !botones.length) return;
+
     respondida = true;
+
+    if (modo === "examen") {
+      respuestasExamen[preguntaActual] = seleccion;
+      botones.forEach(btn => btn.disabled = true);
+      mostrarMensajeResultado("✔ Respuesta guardada.");
+      actualizarPanel();
+      return;
+    }
 
     botones.forEach((btn, i) => {
       btn.disabled = true;
-
-      if (modo === "practica") {
-        if (i === Number(pregunta.correcta)) {
-          btn.classList.add("correcta");
-        }
-        if (i === seleccion && i !== Number(pregunta.correcta)) {
-          btn.classList.add("incorrecta");
-        }
-      } else {
-        if (i === seleccion) {
-          btn.classList.add("seleccionada");
-        }
-      }
+      if (i === Number(pregunta.correcta)) btn.classList.add("correcta");
+      if (i === seleccion && i !== Number(pregunta.correcta)) btn.classList.add("incorrecta");
     });
 
     if (seleccion === Number(pregunta.correcta)) {
       aciertos++;
-      mostrarMensajeResultado(
-        modo === "practica" ? "✔ Correcto." : "✔ Respuesta registrada."
-      );
+      mostrarMensajeResultado("✔ Correcto.");
     } else {
-      mostrarMensajeResultado(
-        modo === "practica"
-          ? `✘ Incorrecto. ${pregunta.feedback || ""}`
-          : "✘ Respuesta registrada."
-      );
+      mostrarMensajeResultado(`✘ Incorrecto. ${pregunta.feedback || ""}`);
     }
 
     actualizarPanel();
@@ -467,6 +505,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function mostrarResultadoFinal() {
     const total = preguntasActivas.length;
+
+    if (modo === "examen") {
+      aciertos = preguntasActivas.reduce((suma, pregunta, i) => {
+        return suma + (respuestasExamen[i] === Number(pregunta.correcta) ? 1 : 0);
+      }, 0);
+    }
+
     const porcentaje = total === 0 ? 0 : Math.round((aciertos / total) * 100);
 
     let mensaje = "";
@@ -490,16 +535,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     els.btnComprobar.disabled = true;
     els.btnSiguiente.disabled = true;
-    els.progreso.style.width = "100%";
     els.contadorPregunta.textContent = `${total} / ${total}`;
+    els.contadorAciertos.textContent = aciertos;
+    els.progreso.style.width = "100%";
     mostrarMensajeResultado("Bloque completado.");
   }
 
   function reiniciarBloque() {
     preguntaActual = 0;
-    aciertos = 0;
     seleccion = null;
     respondida = false;
+    aciertos = 0;
     prepararPreguntasActivas();
     renderInfoBloque();
     renderEsquema();
@@ -528,13 +574,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     els.btnPractica.addEventListener("click", () => activarModo("practica"));
     els.btnExamen.addEventListener("click", () => activarModo("examen"));
-    els.btnComprobar.addEventListener("click", comprobarRespuesta);
-    els.btnSiguiente.addEventListener("click", siguientePregunta);
-    els.btnReiniciar.addEventListener("click", reiniciarBloque);
-
     els.btnVistaQuiz.addEventListener("click", () => mostrarVista("quiz"));
     els.btnVistaEsquema.addEventListener("click", () => mostrarVista("esquema"));
     els.btnVistaCortas.addEventListener("click", () => mostrarVista("cortas"));
+    els.btnComprobar.addEventListener("click", comprobarRespuesta);
+    els.btnSiguiente.addEventListener("click", siguientePregunta);
+    els.btnReiniciar.addEventListener("click", reiniciarBloque);
 
     document.addEventListener("keydown", (e) => {
       if (vistaActual !== "quiz") return;
