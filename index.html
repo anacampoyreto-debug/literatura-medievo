@@ -14,15 +14,15 @@
 </header>
 
 <nav class="menu" id="menuBloques">
-  <button type="button" data-bloque="0" onclick="cargarBloque(0)">🔵 Poesía Popular</button>
-  <button type="button" data-bloque="1" onclick="cargarBloque(1)">🔴 Poesía Culta</button>
-  <button type="button" data-bloque="2" onclick="cargarBloque(2)">🟡 Prosa y Teatro</button>
-  <button type="button" data-bloque="3" onclick="cargarBloque(3)">🟢 Laboratorio Técnico</button>
+  <button type="button" data-bloque="0">🔵 Poesía Popular</button>
+  <button type="button" data-bloque="1">🔴 Poesía Culta</button>
+  <button type="button" data-bloque="2">🟡 Prosa y Teatro</button>
+  <button type="button" data-bloque="3">🟢 Laboratorio Técnico</button>
 </nav>
 
 <section class="modo">
-  <button type="button" id="btnPractica" onclick="activarModo('practica')">Modo Práctica</button>
-  <button type="button" id="btnExamen" onclick="activarModo('examen')">Modo Examen</button>
+  <button type="button" id="btnPractica">Modo Práctica</button>
+  <button type="button" id="btnExamen">Modo Examen</button>
 </section>
 
 <main class="container">
@@ -62,9 +62,9 @@
   </div>
 
   <div class="controles">
-    <button type="button" id="btnComprobar" onclick="comprobar()">Comprobar</button>
-    <button type="button" id="btnSiguiente" onclick="siguiente()">Siguiente</button>
-    <button type="button" id="btnReiniciar" onclick="reiniciarBloque()">Reiniciar bloque</button>
+    <button type="button" id="btnComprobar">Comprobar</button>
+    <button type="button" id="btnSiguiente">Siguiente</button>
+    <button type="button" id="btnReiniciar">Reiniciar bloque</button>
   </div>
 
   <div id="resultado" aria-live="polite"></div>
@@ -77,265 +77,301 @@
 <script src="data.js"></script>
 
 <script>
-let bloqueActual = 0;
-let preguntaActual = 0;
-let modo = "practica";
-let seleccion = null;
-let aciertos = 0;
-let respondida = false;
-let preguntasExamen = [];
+(() => {
+  let bloqueActual = 0;
+  let preguntaActual = 0;
+  let modo = "practica";
+  let seleccion = null;
+  let aciertos = 0;
+  let respondida = false;
+  let preguntasActivas = [];
 
-function obtenerPreguntasDelBloque() {
-  const bloque = datos[bloqueActual];
-  if (!bloque || !Array.isArray(bloque.preguntas)) return [];
-  return modo === "examen" ? preguntasExamen : bloque.preguntas;
-}
+  const els = {
+    menuBloques: document.getElementById("menuBloques"),
+    btnPractica: document.getElementById("btnPractica"),
+    btnExamen: document.getElementById("btnExamen"),
+    btnComprobar: document.getElementById("btnComprobar"),
+    btnSiguiente: document.getElementById("btnSiguiente"),
+    btnReiniciar: document.getElementById("btnReiniciar"),
+    nombreBloque: document.getElementById("nombreBloque"),
+    contadorPregunta: document.getElementById("contadorPregunta"),
+    modoActualTexto: document.getElementById("modoActualTexto"),
+    contadorAciertos: document.getElementById("contadorAciertos"),
+    progreso: document.getElementById("progreso"),
+    quizContainer: document.getElementById("quiz-container"),
+    resultado: document.getElementById("resultado")
+  };
 
-function mezclarArray(array) {
-  const copia = [...array];
-  for (let i = copia.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copia[i], copia[j]] = [copia[j], copia[i]];
-  }
-  return copia;
-}
-
-function activarModo(nuevoModo) {
-  if (modo === nuevoModo) return;
-
-  modo = nuevoModo;
-  actualizarBotonesModo();
-  reiniciarBloque();
-}
-
-function actualizarBotonesModo() {
-  const btnPractica = document.getElementById("btnPractica");
-  const btnExamen = document.getElementById("btnExamen");
-  const modoTexto = document.getElementById("modoActualTexto");
-
-  btnPractica.classList.toggle("activo", modo === "practica");
-  btnExamen.classList.toggle("activo", modo === "examen");
-
-  modoTexto.textContent = modo === "practica" ? "Práctica" : "Examen";
-}
-
-function actualizarBotonesBloque() {
-  const botones = document.querySelectorAll("#menuBloques button");
-  botones.forEach((btn, i) => {
-    btn.classList.toggle("activo", i === bloqueActual);
-  });
-}
-
-function prepararPreguntasExamen() {
-  const preguntasOriginales = datos[bloqueActual].preguntas || [];
-  preguntasExamen = mezclarArray(preguntasOriginales);
-}
-
-function cargarBloque(num) {
-  bloqueActual = num;
-  actualizarBotonesBloque();
-  reiniciarBloque();
-}
-
-function reiniciarBloque() {
-  preguntaActual = 0;
-  aciertos = 0;
-  seleccion = null;
-  respondida = false;
-
-  if (modo === "examen") {
-    prepararPreguntasExamen();
+  function hayDatosValidos() {
+    return Array.isArray(window.datos) && window.datos.length > 0;
   }
 
-  restaurarEstructuraQuiz();
-  actualizarPanel();
-  mostrarPregunta();
-}
+  function mezclarArray(array) {
+    const copia = [...array];
+    for (let i = copia.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+    }
+    return copia;
+  }
 
-function restaurarEstructuraQuiz() {
-  const quizContainer = document.getElementById("quiz-container");
-  quizContainer.innerHTML = `
-    <h2 id="pregunta"></h2>
-    <div id="opciones"></div>
-  `;
+  function obtenerBloqueActual() {
+    return window.datos?.[bloqueActual] || null;
+  }
 
-  document.getElementById("resultado").textContent = "";
-  document.getElementById("btnComprobar").disabled = false;
-  document.getElementById("btnSiguiente").disabled = false;
-}
+  function prepararPreguntasActivas() {
+    const bloque = obtenerBloqueActual();
+    const preguntasOriginales = Array.isArray(bloque?.preguntas) ? bloque.preguntas : [];
+    preguntasActivas = modo === "examen"
+      ? mezclarArray(preguntasOriginales)
+      : [...preguntasOriginales];
+  }
 
-function actualizarPanel() {
-  const bloque = datos[bloqueActual];
-  const preguntas = obtenerPreguntasDelBloque();
-  const total = preguntas.length;
-  const numeroVisible = total === 0 ? 0 : Math.min(preguntaActual + 1, total);
-  const progreso = total === 0 ? 0 : (preguntaActual / total) * 100;
+  function actualizarBotonesBloque() {
+    const botones = els.menuBloques.querySelectorAll("button");
+    botones.forEach((btn, i) => {
+      btn.classList.toggle("activo", i === bloqueActual);
+    });
+  }
 
-  document.getElementById("nombreBloque").textContent = bloque.nombre || `Bloque ${bloqueActual + 1}`;
-  document.getElementById("contadorPregunta").textContent = `${numeroVisible} / ${total}`;
-  document.getElementById("contadorAciertos").textContent = aciertos;
-  document.getElementById("progreso").style.width = `${progreso}%`;
-}
+  function actualizarBotonesModo() {
+    els.btnPractica.classList.toggle("activo", modo === "practica");
+    els.btnExamen.classList.toggle("activo", modo === "examen");
+    els.modoActualTexto.textContent = modo === "practica" ? "Práctica" : "Examen";
+  }
 
-function mostrarPregunta() {
-  const preguntas = obtenerPreguntasDelBloque();
+  function actualizarPanel() {
+    const bloque = obtenerBloqueActual();
+    const total = preguntasActivas.length;
+    const numeroVisible = total === 0
+      ? 0
+      : Math.min(preguntaActual + 1, total);
 
-  if (!preguntas.length) {
-    document.getElementById("quiz-container").innerHTML = `
-      <h2>No hay preguntas disponibles</h2>
-      <p>Revisa tu archivo <strong>data.js</strong>.</p>
+    const progreso = total === 0
+      ? 0
+      : respondida && preguntaActual < total
+        ? ((preguntaActual + 1) / total) * 100
+        : (preguntaActual / total) * 100;
+
+    els.nombreBloque.textContent = bloque?.nombre || bloque?.titulo || `Bloque ${bloqueActual + 1}`;
+    els.contadorPregunta.textContent = `${numeroVisible} / ${total}`;
+    els.contadorAciertos.textContent = aciertos;
+    els.progreso.style.width = `${Math.max(0, Math.min(100, progreso))}%`;
+  }
+
+  function restaurarEstructuraQuiz() {
+    els.quizContainer.innerHTML = `
+      <h2 id="pregunta"></h2>
+      <div id="opciones"></div>
     `;
-    return;
   }
 
-  const pregunta = preguntas[preguntaActual];
-  const preguntaEl = document.getElementById("pregunta");
-  const opcionesDiv = document.getElementById("opciones");
-  const resultado = document.getElementById("resultado");
-
-  respondida = false;
-  seleccion = null;
-
-  preguntaEl.textContent = `${preguntaActual + 1}. ${pregunta.enunciado}`;
-  opcionesDiv.innerHTML = "";
-  resultado.textContent = "";
-
-  pregunta.opciones.forEach((op, i) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.textContent = op;
-    btn.className = "opcion";
-    btn.onclick = () => seleccionar(i, btn);
-    opcionesDiv.appendChild(btn);
-  });
-
-  document.getElementById("btnComprobar").disabled = false;
-  document.getElementById("btnSiguiente").disabled = false;
-
-  actualizarPanel();
-}
-
-function seleccionar(i, btn) {
-  if (respondida) return;
-
-  const botones = document.querySelectorAll(".opcion");
-  botones.forEach(b => b.classList.remove("seleccionada"));
-
-  btn.classList.add("seleccionada");
-  seleccion = i;
-}
-
-function comprobar() {
-  if (respondida) return;
-
-  if (seleccion === null) {
-    document.getElementById("resultado").textContent = "Selecciona una opción antes de comprobar.";
-    return;
+  function mostrarMensajeResultado(texto = "") {
+    els.resultado.textContent = texto;
   }
 
-  const preguntas = obtenerPreguntasDelBloque();
-  const pregunta = preguntas[preguntaActual];
-  const botones = document.querySelectorAll(".opcion");
-  const resultado = document.getElementById("resultado");
-
-  respondida = true;
-
-  botones.forEach((btn, i) => {
-    btn.disabled = true;
-
-    if (i === pregunta.correcta) {
-      btn.classList.add("correcta");
+  function renderPregunta() {
+    if (!preguntasActivas.length) {
+      els.quizContainer.innerHTML = `
+        <div class="resultado-final">
+          <h2>No hay preguntas disponibles</h2>
+          <p>Revisa el archivo <strong>data.js</strong>.</p>
+        </div>
+      `;
+      els.btnComprobar.disabled = true;
+      els.btnSiguiente.disabled = true;
+      actualizarPanel();
+      return;
     }
 
-    if (i === seleccion && i !== pregunta.correcta) {
-      btn.classList.add("incorrecta");
+    if (preguntaActual < 0) preguntaActual = 0;
+    if (preguntaActual >= preguntasActivas.length) {
+      mostrarResultadoFinal();
+      return;
     }
-  });
 
-  if (seleccion === pregunta.correcta) {
-    aciertos++;
-    resultado.textContent = modo === "practica"
-      ? "✔ Correcto."
-      : "✔ Respuesta registrada.";
-  } else {
-    resultado.textContent = modo === "practica"
-      ? `✘ Incorrecto. ${pregunta.feedback || ""}`
-      : "✘ Respuesta registrada.";
+    respondida = false;
+    seleccion = null;
+
+    restaurarEstructuraQuiz();
+
+    const pregunta = preguntasActivas[preguntaActual];
+    const preguntaEl = document.getElementById("pregunta");
+    const opcionesDiv = document.getElementById("opciones");
+
+    preguntaEl.textContent = `${preguntaActual + 1}. ${pregunta.enunciado || pregunta.pregunta || ""}`;
+    opcionesDiv.innerHTML = "";
+
+    (pregunta.opciones || []).forEach((opcionTexto, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "opcion";
+      btn.textContent = opcionTexto;
+
+      btn.addEventListener("click", () => {
+        if (respondida) return;
+        document.querySelectorAll(".opcion").forEach(b => b.classList.remove("seleccionada"));
+        btn.classList.add("seleccionada");
+        seleccion = i;
+      });
+
+      opcionesDiv.appendChild(btn);
+    });
+
+    els.btnComprobar.disabled = false;
+    els.btnSiguiente.disabled = false;
+    mostrarMensajeResultado("");
+    actualizarPanel();
   }
 
-  actualizarPanel();
+  function comprobarRespuesta() {
+    if (respondida) return;
 
-  if (modo === "examen") {
-    if (seleccion !== null && pregunta.correcta !== undefined) {
-      // En examen no damos feedback real, solo registramos
+    if (seleccion === null) {
+      mostrarMensajeResultado("Selecciona una opción antes de comprobar.");
+      return;
     }
+
+    const pregunta = preguntasActivas[preguntaActual];
+    if (!pregunta) return;
+
+    const botones = document.querySelectorAll(".opcion");
+    respondida = true;
+
+    botones.forEach((btn, i) => {
+      btn.disabled = true;
+
+      if (i === Number(pregunta.correcta)) {
+        btn.classList.add("correcta");
+      }
+
+      if (i === seleccion && i !== Number(pregunta.correcta)) {
+        btn.classList.add("incorrecta");
+      }
+    });
+
+    if (seleccion === Number(pregunta.correcta)) {
+      aciertos++;
+      mostrarMensajeResultado(
+        modo === "practica"
+          ? "✔ Correcto."
+          : "✔ Respuesta registrada."
+      );
+    } else {
+      mostrarMensajeResultado(
+        modo === "practica"
+          ? `✘ Incorrecto. ${pregunta.feedback || ""}`
+          : "✘ Respuesta registrada."
+      );
+    }
+
+    actualizarPanel();
   }
-}
 
-function siguiente() {
-  const preguntas = obtenerPreguntasDelBloque();
+  function siguientePregunta() {
+    if (!preguntasActivas.length) return;
 
-  if (!preguntas.length) return;
+    if (!respondida) {
+      mostrarMensajeResultado("Primero debes comprobar la respuesta.");
+      return;
+    }
 
-  if (!respondida) {
-    document.getElementById("resultado").textContent = "Primero debes comprobar la respuesta.";
-    return;
+    preguntaActual++;
+
+    if (preguntaActual >= preguntasActivas.length) {
+      mostrarResultadoFinal();
+      return;
+    }
+
+    renderPregunta();
   }
 
-  preguntaActual++;
+  function mostrarResultadoFinal() {
+    const total = preguntasActivas.length;
+    const porcentaje = total === 0 ? 0 : Math.round((aciertos / total) * 100);
 
-  if (preguntaActual >= preguntas.length) {
-    mostrarResultadoFinal();
-    return;
-  }
+    let mensaje = "";
+    if (porcentaje >= 90) mensaje = "Dominio excelente del bloque.";
+    else if (porcentaje >= 70) mensaje = "Muy buen trabajo.";
+    else if (porcentaje >= 50) mensaje = "Base conseguida, pero aún puedes afinar.";
+    else mensaje = "Necesitas otra vuelta de estudio, y eso tiene arreglo.";
 
-  mostrarPregunta();
-}
+    const bloque = obtenerBloqueActual();
 
-function mostrarResultadoFinal() {
-  const preguntas = obtenerPreguntasDelBloque();
-  const total = preguntas.length;
-  const porcentaje = total === 0 ? 0 : Math.round((aciertos / total) * 100);
-  let mensaje = "";
-
-  if (porcentaje >= 90) mensaje = "Dominio excelente del bloque.";
-  else if (porcentaje >= 70) mensaje = "Muy buen trabajo.";
-  else if (porcentaje >= 50) mensaje = "Base conseguida, pero aún puedes afinar.";
-  else mensaje = "Necesitas otra vuelta de estudio, y eso tiene arreglo.";
-
-  document.getElementById("quiz-container").innerHTML = `
-    <div class="resultado-final">
-      <h2>Resultado final</h2>
-      <p><strong>Bloque:</strong> ${datos[bloqueActual].nombre || `Bloque ${bloqueActual + 1}`}</p>
-      <p><strong>Modo:</strong> ${modo === "practica" ? "Práctica" : "Examen"}</p>
-      <p><strong>Aciertos:</strong> ${aciertos} / ${total}</p>
-      <p><strong>Porcentaje:</strong> ${porcentaje}%</p>
-      <p><strong>Valoración:</strong> ${mensaje}</p>
-    </div>
-  `;
-
-  document.getElementById("resultado").textContent = "Bloque completado.";
-  document.getElementById("btnComprobar").disabled = true;
-  document.getElementById("btnSiguiente").disabled = true;
-  document.getElementById("progreso").style.width = "100%";
-  document.getElementById("contadorPregunta").textContent = `${total} / ${total}`;
-}
-
-function init() {
-  if (!Array.isArray(datos) || !datos.length) {
-    document.getElementById("quiz-container").innerHTML = `
-      <h2>Error de carga</h2>
-      <p>No se ha encontrado un array válido llamado <strong>datos</strong> en <strong>data.js</strong>.</p>
+    els.quizContainer.innerHTML = `
+      <div class="resultado-final">
+        <h2>Resultado final</h2>
+        <p><strong>Bloque:</strong> ${bloque?.nombre || bloque?.titulo || `Bloque ${bloqueActual + 1}`}</p>
+        <p><strong>Modo:</strong> ${modo === "practica" ? "Práctica" : "Examen"}</p>
+        <p><strong>Aciertos:</strong> ${aciertos} / ${total}</p>
+        <p><strong>Porcentaje:</strong> ${porcentaje}%</p>
+        <p><strong>Valoración:</strong> ${mensaje}</p>
+      </div>
     `;
-    return;
+
+    els.btnComprobar.disabled = true;
+    els.btnSiguiente.disabled = true;
+    els.progreso.style.width = "100%";
+    els.contadorPregunta.textContent = `${total} / ${total}`;
+    mostrarMensajeResultado("Bloque completado.");
   }
 
-  actualizarBotonesModo();
-  actualizarBotonesBloque();
-  reiniciarBloque();
-}
+  function reiniciarBloque() {
+    preguntaActual = 0;
+    aciertos = 0;
+    seleccion = null;
+    respondida = false;
+    prepararPreguntasActivas();
+    renderPregunta();
+  }
 
-init();
+  function cargarBloque(num) {
+    bloqueActual = num;
+    actualizarBotonesBloque();
+    reiniciarBloque();
+  }
+
+  function activarModo(nuevoModo) {
+    if (modo === nuevoModo) return;
+    modo = nuevoModo;
+    actualizarBotonesModo();
+    reiniciarBloque();
+  }
+
+  function enlazarEventos() {
+    els.menuBloques.querySelectorAll("button").forEach((btn, i) => {
+      btn.addEventListener("click", () => cargarBloque(i));
+    });
+
+    els.btnPractica.addEventListener("click", () => activarModo("practica"));
+    els.btnExamen.addEventListener("click", () => activarModo("examen"));
+    els.btnComprobar.addEventListener("click", comprobarRespuesta);
+    els.btnSiguiente.addEventListener("click", siguientePregunta);
+    els.btnReiniciar.addEventListener("click", reiniciarBloque);
+  }
+
+  function init() {
+    if (!hayDatosValidos()) {
+      els.quizContainer.innerHTML = `
+        <div class="resultado-final">
+          <h2>Error de carga</h2>
+          <p>No se ha encontrado un array válido llamado <strong>datos</strong> en <strong>data.js</strong>.</p>
+        </div>
+      `;
+      els.btnComprobar.disabled = true;
+      els.btnSiguiente.disabled = true;
+      els.btnReiniciar.disabled = true;
+      return;
+    }
+
+    enlazarEventos();
+    actualizarBotonesModo();
+    actualizarBotonesBloque();
+    reiniciarBloque();
+  }
+
+  init();
+})();
 </script>
 
 </body>
