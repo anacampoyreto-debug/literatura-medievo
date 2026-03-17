@@ -569,3 +569,89 @@ footer {
     width: 100%;
   }
 }
+.celestina-box {
+  margin: 0 0 20px;
+  padding: 22px 20px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255,250,240,0.96), rgba(245,236,217,0.96));
+  border: 2px solid rgba(201, 164, 76, 0.5);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+  color: #2a1d14;
+  position: relative;
+  z-index: 1;
+}
+
+.celestina-box.oculto {
+  display: none !important;
+}
+
+.celestina-box h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  color: #7a1f1f;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.celestina-box .aviso {
+  margin: 0 0 16px;
+  font-weight: 700;
+  color: #7a1f1f;
+  font-size: 1.05rem;
+}
+
+.celestina-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 18px;
+}
+
+.celestina-card {
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(92, 71, 52, 0.14);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.celestina-card h3 {
+  margin: 0 0 10px;
+  color: #234f3d;
+  font-size: 1.1rem;
+}
+
+.celestina-card p,
+.celestina-card li {
+  color: #2a1d14;
+  line-height: 1.5;
+}
+
+.celestina-card ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.relacion-item {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 248, 235, 0.75);
+  border: 1px solid rgba(92, 71, 52, 0.12);
+}
+
+.relacion-item strong {
+  color: #7a1f1f;
+}
+
+.celestina-mini {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 760px) {
+  .celestina-grid,
+  .celestina-mini {
+    grid-template-columns: 1fr;
+  }
+}
